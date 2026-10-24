@@ -47,6 +47,13 @@ jobs:
           fi
           ls "$ANDROID_HOME/platforms" || true
 
+      - name: Install NDK 25b
+        run: |
+          # runner 自带 NDK 27，其移除了 ALooper_pollAll，SDL2 老版本会编译失败。
+          SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          yes | "$SDKMANAGER" --sdk_root="$ANDROID_HOME" "ndk;25.2.9519653" >/dev/null 2>&1 || true
+          ls "$ANDROID_HOME/ndk"
+
       - name: Cache Android SDK / NDK / downloads
         uses: actions/cache@v4
         with:
@@ -72,6 +79,8 @@ jobs:
             --android-api 31 \
             --min-api 24 \
             --arch arm64-v8a \
+            --ndk-dir "$ANDROID_HOME/ndk/25.2.9519653" \
+            --sdk-dir "$ANDROID_HOME" \
             --permission INTERNET \
             --permission MANAGE_EXTERNAL_STORAGE \
             --permission READ_EXTERNAL_STORAGE \
