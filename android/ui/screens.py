@@ -31,7 +31,7 @@ from core.runner import Runner
 
 from .common import (BG, BORDER, CARD, CARD_DIM, ERR, MUTED, OK, PRIMARY, TEXT, WARN,
                      Body, Card, Field, RBtn, Sel, Thumb)
-from .picker import FilePicker
+from .picker import open_picker
 
 OUT = output_dir()
 
@@ -212,7 +212,7 @@ class UnderstandPage(Page):
     def _pick_row(self):
         row = BoxLayout(size_hint_y=None, height=dp(46), spacing=dp(8))
         b = RBtn(text="选择图片", filled=False, size_hint_x=None, width=dp(112))
-        b.bind(on_release=lambda *_: FilePicker(self._on_pick, "image", 4).open())
+        b.bind(on_release=lambda *_: open_picker(self._on_pick, "image", 4))
         c = RBtn(text="清空", filled=False, size_hint_x=None, width=dp(64))
         c.bind(on_release=lambda *_: self._clear())
         self.pick_hint = Field(text="未选择", color=list(MUTED))
@@ -277,7 +277,7 @@ class ImagePage(Page):
 
         row = BoxLayout(size_hint_y=None, height=dp(46), spacing=dp(8))
         b = RBtn(text="加参考图（可选）", filled=False, size_hint_x=None, width=dp(156))
-        b.bind(on_release=lambda *_: FilePicker(self._on_pick, "image", 1).open())
+        b.bind(on_release=lambda *_: open_picker(self._on_pick, "image", 1))
         c = RBtn(text="清空", filled=False, size_hint_x=None, width=dp(64))
         c.bind(on_release=lambda *_: self._clear())
         self.pick_hint = Field(text="无参考图 = 文生图", color=list(MUTED))
@@ -362,7 +362,7 @@ class VideoPage(Page):
 
         row = BoxLayout(size_hint_y=None, height=dp(46), spacing=dp(8))
         b = RBtn(text="首帧图（可选）", filled=False, size_hint_x=None, width=dp(136))
-        b.bind(on_release=lambda *_: FilePicker(self._on_pick, "image", 1).open())
+        b.bind(on_release=lambda *_: open_picker(self._on_pick, "image", 1))
         c = RBtn(text="清空", filled=False, size_hint_x=None, width=dp(64))
         c.bind(on_release=lambda *_: self._clear())
         self.pick_hint = Field(text="无首帧图 = 文生视频", color=list(MUTED))
@@ -450,7 +450,7 @@ class EditPage(Page):
 
         vrow = BoxLayout(size_hint_y=None, height=dp(46), spacing=dp(8))
         b = RBtn(text="选择视频", filled=False, size_hint_x=None, width=dp(112))
-        b.bind(on_release=lambda *_: FilePicker(self._on_video, "video", 1).open())
+        b.bind(on_release=lambda *_: open_picker(self._on_video, "video", 1))
         c = RBtn(text="清空", filled=False, size_hint_x=None, width=dp(64))
         c.bind(on_release=lambda *_: self._clear_video())
         self.video_hint = Field(text="未选择", color=list(MUTED))
@@ -462,7 +462,7 @@ class EditPage(Page):
 
         irow = BoxLayout(size_hint_y=None, height=dp(46), spacing=dp(8))
         ib = RBtn(text="参考图（可选）", filled=False, size_hint_x=None, width=dp(136))
-        ib.bind(on_release=lambda *_: FilePicker(self._on_images, "image", 3).open())
+        ib.bind(on_release=lambda *_: open_picker(self._on_images, "image", 3))
         ic = RBtn(text="清空", filled=False, size_hint_x=None, width=dp(64))
         ic.bind(on_release=lambda *_: self._clear_images())
         self.img_hint = Field(text="未选择", color=list(MUTED))

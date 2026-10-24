@@ -77,3 +77,22 @@ class FilePicker(Popup):
             return
         self.dismiss()
         self.on_pick(sel)
+
+
+# ---------------------------------------------------------------- 分发
+_picker_singleton = None
+
+
+def open_picker(on_pick, kind: str = "image", limit: int = 1) -> None:
+    """Android 走系统相册（SAF，免存储权限），其他平台用 Kivy 的 FilePicker。"""
+    global _picker_singleton
+    try:
+        from .android_picker import MediaPicker, is_android
+    except Exception:
+        is_android = lambda: False  # noqa: E731
+    if is_android():
+        if _picker_singleton is None:
+            _picker_singleton = MediaPicker()
+        _picker_singleton.pick(on_pick, kind, limit)
+    else:
+        FilePicker(on_pick, kind, limit).open()

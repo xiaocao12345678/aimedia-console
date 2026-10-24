@@ -76,18 +76,14 @@ jobs:
             --name "AI多模态控制台" \
             --version 1.0.0 \
             --requirements "python3,kivy,requests,urllib3,certifi,idna,charset-normalizer,pyjnius" \
-            --android-api 31 \
-            --minsdk 21 \
+            --android-api 34 \
+            --minsdk 24 \
+            --allow-minsdk-ndkapi-mismatch \
             --arch arm64-v8a \
             --bootstrap sdl2 \
             --ndk-dir "$ANDROID_HOME/ndk/25.2.9519653" \
             --sdk-dir "$ANDROID_HOME" \
             --permission INTERNET \
-            --permission MANAGE_EXTERNAL_STORAGE \
-            --permission READ_EXTERNAL_STORAGE \
-            --permission WRITE_EXTERNAL_STORAGE \
-            --permission READ_MEDIA_IMAGES \
-            --permission READ_MEDIA_VIDEO \
             --debug 2>&1 | tee /tmp/p4a-build.log
 
       - name: Show build log tail on failure
