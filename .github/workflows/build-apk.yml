@@ -38,6 +38,15 @@ jobs:
           # 2023.9.16 是社区验证充分的组合（默认 Python 3.11）。
           python -m pip install "cython<3" "python-for-android==2023.9.16"
 
+      - name: Install Android SDK platform 31
+        run: |
+          # runner 自带 34/35/36，没有 31；p4a 2023.9.16 默认目标就是 31
+          SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          if [ -x "$SDKMANAGER" ]; then
+            yes | "$SDKMANAGER" --sdk_root="$ANDROID_HOME" "platforms;android-31" "build-tools;31.0.0" >/dev/null 2>&1 || true
+          fi
+          ls "$ANDROID_HOME/platforms" || true
+
       - name: Cache Android SDK / NDK / downloads
         uses: actions/cache@v4
         with:
@@ -52,6 +61,7 @@ jobs:
         env:
           ANDROID_API: 31
         run: |
+          set -o pipefail     # 否则 p4a 失败时 tee 返回 0，step 会误报成功
           cd android
           p4a apk \
             --private . \
