@@ -300,6 +300,9 @@ def bl_video(model, prompt, images, key, *, log, cancel, options) -> str:
     headers["X-DashScope-Async"] = "enable"
     inp: dict[str, Any] = {"prompt": prompt}
     if images:
+        # 百炼 wan 的视频合成只接受单张首帧；多选时明确告知，避免用户以为全用上了
+        if len(images) > 1:
+            log(f"百炼只支持单张首帧图，本次使用第 1 张，其余 {len(images) - 1} 张已忽略")
         inp["media"] = [{"type": "first_frame", "url": _data_url(images[0])}]
     params: dict[str, Any] = {"prompt_extend": True}
     if options.get("resolution"):
@@ -401,6 +404,9 @@ def th_video(model, prompt, images, key, *, log, cancel, options) -> str:
     log = _log(log)
     body: dict[str, Any] = {"model": model, "prompt": prompt}
     if images:
+        # 该平台视频只接受单张首帧图；多选时说明清楚
+        if len(images) > 1:
+            log(f"该平台的视频生成只支持单张首帧图，本次使用第 1 张，其余 {len(images) - 1} 张已忽略")
         body["image_url"] = _data_url(images[0])
     else:
         body["aspect_ratio"] = _ratio(options.get("size") or "")
@@ -499,6 +505,9 @@ def zp_video(model, prompt, images, key, *, log, cancel, options) -> str:
         body["duration"] = 10 if duration >= 10 else 5
         body["fps"] = 30
     if images:
+        # 该平台视频只接受单张首帧图；多选时说明清楚
+        if len(images) > 1:
+            log(f"该平台的视频生成只支持单张首帧图，本次使用第 1 张，其余 {len(images) - 1} 张已忽略")
         body["image_url"] = _data_url(images[0])
     data = _post(f"{ZP_BASE}/videos/generations", _bearer(key), body, what="智谱视频任务提交", log=log)
     task_id = data.get("id")

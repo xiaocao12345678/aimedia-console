@@ -406,15 +406,15 @@ class VideoPage(Page):
         self.add_card(Field(text="提示词", color=list(TEXT)), self.prompt)
 
         row = BoxLayout(size_hint_y=None, height=dp(46), spacing=dp(8))
-        b = RBtn(text="首帧图（可选）", filled=False, size_hint_x=None, width=dp(136))
-        b.bind(on_release=lambda *_: open_picker(self._on_pick, "image", 1))
+        b = RBtn(text="参考图（可选）", filled=False, size_hint_x=None, width=dp(136))
+        b.bind(on_release=lambda *_: open_picker(self._on_pick, "image", 3))
         c = RBtn(text="清空", filled=False, size_hint_x=None, width=dp(64))
         c.bind(on_release=lambda *_: self._clear())
-        self.pick_hint = Field(text="无首帧图 = 文生视频", color=list(MUTED))
+        self.pick_hint = Field(text="无参考图 = 文生视频；最多 3 张", color=list(MUTED))
         row.add_widget(b)
         row.add_widget(c)
         row.add_widget(self.pick_hint)
-        self.add_card(Field(text="首帧图（有则图生视频）", color=list(TEXT)), row)
+        self.add_card(Field(text="参考图（有则图生视频，最多 3 张）", color=list(TEXT)), row)
 
         opts = BoxLayout(size_hint_y=None, height=dp(46), spacing=dp(8))
         self.size_sel = Sel(text="1280x720", values=["1280x720", "720x1280", "960x960", "1920x1080"],
@@ -435,12 +435,19 @@ class VideoPage(Page):
         self.add(self.preview)
 
     def _on_pick(self, files):
-        self.images = files[:1]
-        self.pick_hint.text = Path(self.images[0]).name
+        self.images = files[:3]
+        if not self.images:
+            self.pick_hint.text = "无参考图 = 文生视频；最多 3 张"
+            return
+        if len(self.images) == 1:
+            self.pick_hint.text = Path(self.images[0]).name
+        else:
+            self.pick_hint.text = f"已选 {len(self.images)} 张：" + "、".join(
+                Path(p).name for p in self.images)
 
     def _clear(self):
         self.images = []
-        self.pick_hint.text = "无首帧图 = 文生视频"
+        self.pick_hint.text = "无参考图 = 文生视频；最多 3 张"
 
     def _run(self, *_):
         plat = self.plat.text
