@@ -181,7 +181,7 @@ class ConsoleApp(App):
         self.log("info", f"已配置 Key：{len(configured)}/6 " + ("、".join(configured) or "（无）"))
 
         self.goto("understand")
-        Clock.schedule_once(lambda *_: self._check_storage_permission(), 1.2)
+        # SAF 选图不需要存储权限，启动时不再检查/跳转系统权限页
         Window.bind(on_keyboard=self._on_key)
         return root
 
@@ -216,31 +216,6 @@ class ConsoleApp(App):
     def refresh_key_state(self) -> None:
         pass
 
-    # ------------------------------------------------------------ 存储权限
-    def _check_storage_permission(self) -> None:
-        if not os.environ.get("ANDROID_ARGUMENT"):
-            return
-        try:
-            from jnius import autoclass
-            Environment = autoclass("android.os.Environment")
-            PythonActivity = autoclass("org.kivy.android.PythonActivity")
-            Intent = autoclass("android.content.Intent")
-            Settings = autoclass("android.provider.Settings")
-            Uri = autoclass("android.net.Uri")
-            activity = PythonActivity.mActivity
-            if Environment.isExternalStorageManager():
-                return
-            try:
-                uri = Uri.parse("package:" + activity.getPackageName())
-                intent = Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION, uri)
-                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                activity.startActivity(intent)
-                self.toast("请在系统里允许「所有文件访问」，否则生成的文件只能存在应用内部", WARN)
-            except Exception:
-                self.toast("没有存储权限，生成的文件会存在应用私有目录", WARN)
-        except Exception:
-            pass
-
     # ------------------------------------------------------------ 返回键
     def _on_key(self, _window, key, *_args):
         from kivy.core.window import Keyboard
@@ -250,7 +225,39 @@ class ConsoleApp(App):
         return False
 
 
+def _install_exception_guard() -> None:
+    """让 Kivy 回调里的异常不杀进程，并把堆栈写进日志。
+
+    Kivy 默认在 on_exception 里可能直接结束进程——表现在用户那边就是"点一下闪退"，
+    什么提示都没有。接上 ExceptionManager 后返回 PASS，界面还在，错误可查。
+    """
+    try:
+        from kivy.base import ExceptionHandler, ExceptionManager
+
+        class _Guard(ExceptionHandler):
+            def handle_exception(self, inst):
+                try:
+                    txt = "".join(traceback.format_exception(
+                        type(inst), inst, inst.__traceback__))
+                    print(txt)
+                    try:
+                        from core.paths import output_dir
+                        with open(os.path.join(output_dir(), "crash.log"),
+                                  "a", encoding="utf-8") as f:
+                            f.write(f"\n=== {time.strftime('%Y-%m-%d %H:%M:%S')} ===\n{txt}")
+                    except Exception:
+                        pass
+                except Exception:
+                    pass
+                return ExceptionManager.PASS   # 继续跑，不退出
+
+        ExceptionManager.add_handler(_Guard())
+    except Exception:
+        traceback.print_exc()
+
+
 def main() -> None:
+    _install_exception_guard()
     try:
         ConsoleApp().run()
     except Exception:

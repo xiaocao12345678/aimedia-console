@@ -83,16 +83,45 @@ class FilePicker(Popup):
 _picker_singleton = None
 
 
+def _error_popup(msg: str) -> None:
+    """把失败原因显示出来——静默失败比闪退更难查。"""
+    try:
+        from kivy.uix.label import Label
+        from kivy.uix.boxlayout import BoxLayout
+        pop = Popup(title="打开相册失败", size_hint=(0.9, 0.35))
+        box = BoxLayout(orientation="vertical", padding=dp(12), spacing=dp(10))
+        lab = Label(text=msg, halign="left", valign="top", font_size="13sp")
+        lab.bind(size=lambda *_: setattr(lab, "text_size", (lab.width, None)))
+        box.add_widget(lab)
+        ok = RBtn(text="知道了")
+        ok.bind(on_release=lambda *_: pop.dismiss())
+        box.add_widget(ok)
+        pop.content = box
+        pop.open()
+    except Exception:
+        pass
+
+
 def open_picker(on_pick, kind: str = "image", limit: int = 1) -> None:
     """Android 走系统相册（SAF，免存储权限），其他平台用 Kivy 的 FilePicker。"""
     global _picker_singleton
     try:
         from .android_picker import MediaPicker, is_android
-    except Exception:
+    except Exception as exc:
+        print(f"[picker] android_picker 导入失败: {exc}")
         is_android = lambda: False  # noqa: E731
+
     if is_android():
-        if _picker_singleton is None:
-            _picker_singleton = MediaPicker()
-        _picker_singleton.pick(on_pick, kind, limit)
+        try:
+            if _picker_singleton is None:
+                _picker_singleton = MediaPicker()
+            _picker_singleton.pick(on_pick, kind, limit)
+            err = getattr(_picker_singleton, "last_error", "")
+            if err:
+                _error_popup(f"系统相册没能打开：\n{err}")
+        except Exception as exc:
+            # 兜住一切，避免闪退；把原因直接给用户看
+            print(f"[picker] SAF 调用异常: {exc}")
+            _error_popup(f"{type(exc).__name__}: {exc}")
     else:
         FilePicker(on_pick, kind, limit).open()
