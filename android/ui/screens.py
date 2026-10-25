@@ -215,14 +215,31 @@ class Page(Screen):
 
     def _fail(self, message: str, detail: str) -> None:
         plat = getattr(self, "_plat", "")
-        full = error_hint.decorate(message, plat)
+        hint, url = error_hint.hint_for(message, plat)
+        self._hint = hint or ""
+        self._hint_url = url or ""
         self.app.log("error", f"失败：{message}")
         if detail:
             self.app.log("error", detail)
-        if full != message:
-            self.app.log("info", full.split("\n\n", 1)[-1])
+        if hint:
+            self.app.log("info", f"建议：{hint}")
+            if url:
+                self.app.log("info", f"入口：{url}")
         self.app.set_status("失败")
-        self.app.toast(message[:120], ERR)
+        # 提示条优先给「下一步该干什么」，而不是把一长串英文原文塞给用户
+        self.app.toast((hint or message)[:110], ERR)
+
+    def failure_text(self, message: str) -> str:
+        """结果区显示：建议在前、原始错误压后，方便直接照着做。"""
+        hint = getattr(self, "_hint", "")
+        url = getattr(self, "_hint_url", "")
+        if not hint:
+            return f"失败：{message}"
+        parts = [f"失败：{hint}"]
+        if url:
+            parts.append(f"开通 / 管理入口：\n{url}")
+        parts.append(f"原始错误：{message[:240]}")
+        return "\n\n".join(parts)
 
     def build(self) -> None:  # 子类实现
         raise NotImplementedError
@@ -296,7 +313,7 @@ class UnderstandPage(Page):
     def _fail(self, message: str, detail: str):
         self.go.disabled = False
         super()._fail(message, detail)
-        self.result.text = f"失败：{message}"
+        self.result.text = self.failure_text(message)
 
 
 # ------------------------------------------------------------------ 图像生成
@@ -481,7 +498,7 @@ class VideoPage(Page):
     def _fail(self, message: str, detail: str):
         self.go.disabled = False
         super()._fail(message, detail)
-        self.out.text = f"失败：{message}"
+        self.out.text = self.failure_text(message)
 
 
 # ------------------------------------------------------------------ 视频编辑
@@ -597,7 +614,7 @@ class EditPage(Page):
     def _fail(self, message: str, detail: str):
         self.go.disabled = False
         super()._fail(message, detail)
-        self.out.text = f"失败：{message}"
+        self.out.text = self.failure_text(message)
 
 
 # ------------------------------------------------------------------ 密钥
