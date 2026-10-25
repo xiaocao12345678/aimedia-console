@@ -74,7 +74,7 @@ jobs:
             --private . \
             --package org.aimedia.aimedia \
             --name "AI多模态控制台" \
-            --version 1.0.2 \
+            --version 1.0.3 \
             --requirements "python3,kivy,requests,urllib3,certifi,idna,charset-normalizer,pyjnius" \
             --android-api 34 \
             --minsdk 24 \

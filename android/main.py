@@ -169,6 +169,10 @@ class ConsoleApp(App):
         root.add_widget(self.sm)
 
         self.status = StatusBar()
+
+        # 全局加载遮罩：生成/轮询期间给用户明确反馈（转圈 + 步骤 + 已等待秒数）
+        from ui.loading import LoadingOverlay
+        self.loading = LoadingOverlay()
         root.add_widget(self.status)
         self.nav = NavBar(self)
         root.add_widget(self.nav)

@@ -74,6 +74,17 @@ class Page(Screen):
     capability = "understand"
     title_cn = ""
 
+    # 遮罩上写什么：视频类必须提前说明要等几分钟，否则用户会以为卡死
+    BUSY_TEXT = {
+        "understand": "正在分析图片…",
+        "image": "正在生成图片…",
+        "video": "正在生成视频，可能要几分钟…",
+        "video_edit": "正在编辑视频，可能要几分钟…",
+    }
+
+    def busy_text(self) -> str:
+        return self.BUSY_TEXT.get(self.capability, "正在处理…")
+
     def __init__(self, app, **kw):
         super().__init__(**kw)
         self.app = app
@@ -148,15 +159,45 @@ class Page(Screen):
         if self.runner and self.runner.is_alive():
             self.toast("上一个任务还在跑，稍等", WARN)
             return
+        self._show_loading()
         r = Runner(
             on_log=lambda lvl, msg: Clock.schedule_once(lambda dt: self._log(lvl, msg), 0),
             on_progress=lambda pct, txt: Clock.schedule_once(lambda dt: self._progress(pct, txt), 0),
-            on_done=lambda payload: Clock.schedule_once(lambda dt: self._done(payload), 0),
-            on_fail=lambda msg, detail: Clock.schedule_once(lambda dt: self._fail(msg, detail), 0),
+            on_done=lambda payload: Clock.schedule_once(lambda dt: self._finish(payload, None), 0),
+            on_fail=lambda msg, detail: Clock.schedule_once(
+                lambda dt: self._finish(None, (msg, detail)), 0),
             **kw,
         )
         self.runner = r
-        r.start()
+        try:
+            r.start()
+        except Exception as exc:      # 线程都起不来时别把遮罩留在屏幕上
+            self._hide_loading()
+            self.toast(f"任务启动失败：{exc}", ERR)
+
+    # ---- 加载遮罩 ----------------------------------------------------
+    def _show_loading(self) -> None:
+        try:
+            self.app.loading.show(self.busy_text())
+        except Exception:
+            pass
+
+    def _hide_loading(self) -> None:
+        try:
+            self.app.loading.hide()
+        except Exception:
+            pass
+
+    def _finish(self, payload, fail) -> None:
+        """先收遮罩再交回页面，避免页面的 _done 抛错时遮罩一直挂着。"""
+        self._hide_loading()
+        try:
+            if fail is None:
+                self._done(payload)
+            else:
+                self._fail(*fail)
+        except Exception as exc:
+            self.app.log("error", f"处理结果时出错：{exc}")
 
     def _log(self, level: str, msg: str) -> None:
         self.app.log(level, msg)
@@ -164,6 +205,10 @@ class Page(Screen):
     def _progress(self, pct: int, txt: str) -> None:
         if txt:
             self.app.set_status(txt)
+            try:
+                self.app.loading.update(txt)      # 轮询阶段的"第 N 次检查"也显示在遮罩上
+            except Exception:
+                pass
 
     def _done(self, payload: dict) -> None:
         self.app.set_status("完成")
